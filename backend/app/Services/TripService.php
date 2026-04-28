@@ -8,14 +8,31 @@ use Carbon\Carbon;
 
 class TripService
 {
-    public function createTrip(int $truckId): Trip
+    public function createTrip(int $truckId, string $status = Trip::STATUS_STARTED): Trip
     {
-        return Trip::create([
+        $now = now();
+
+        $payload = [
             'truck_id' => $truckId,
-            'status' => Trip::STATUS_STARTED,
-            'started_at' => now(),
-            'is_active' => true,
-        ]);
+            'status' => $status,
+            'started_at' => $now,
+            'is_active' => $status !== Trip::STATUS_COMPLETED,
+        ];
+
+        if ($status === Trip::STATUS_ARRIVED_PORT) {
+            $payload['arrived_port_at'] = $now;
+        }
+
+        if ($status === Trip::STATUS_LEFT_PORT) {
+            $payload['left_port_at'] = $now;
+        }
+
+        if ($status === Trip::STATUS_COMPLETED) {
+            $payload['completed_at'] = $now;
+            $payload['is_active'] = null;
+        }
+
+        return Trip::create($payload);
     }
 
     public function getActiveTrip(int $truckId): ?Trip

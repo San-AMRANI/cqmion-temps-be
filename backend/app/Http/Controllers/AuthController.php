@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -29,9 +28,8 @@ class AuthController extends Controller
 
         /** @var \App\Models\User $user */
         $user = $request->user();
-        $expiration = config('sanctum.expiration');
-        $expiresAt = $expiration ? Carbon::now()->addMinutes((int) $expiration) : null;
-        $token = $user->createToken($credentials['device_name'] ?? 'api-token', ['*'], $expiresAt)->plainTextToken;
+        $expiresAt = null;
+        $token = $user->createToken($credentials['device_name'] ?? 'api-token', ['*'])->plainTextToken;
 
         return $this->successResponse([
             'token' => $token,

@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminScanLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ScanController;
+use App\Http\Controllers\ScanFlowController;
 use App\Http\Controllers\TripController;
 use App\Http\Controllers\TruckController;
 use App\Http\Controllers\UserController;
@@ -26,6 +27,9 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/trucks/{truck}/generate-qr', [TruckController::class, 'generateQr']);
         Route::patch('/trucks/{truck}/activate', [TruckController::class, 'activate']);
         Route::patch('/trucks/{truck}/deactivate', [TruckController::class, 'deactivate']);
+
+        Route::get('/scan-flow', [ScanFlowController::class, 'show']);
+        Route::put('/scan-flow', [ScanFlowController::class, 'update']);
 
         Route::apiResource('users', UserController::class);
 

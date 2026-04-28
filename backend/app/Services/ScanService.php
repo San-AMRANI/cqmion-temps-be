@@ -7,7 +7,6 @@ use App\Events\LeftPort;
 use App\Exceptions\ScanException;
 use App\Events\TripCompleted;
 use App\Events\TripStarted;
-use App\Models\ScanLog;
 use App\Models\Trip;
 use App\Models\Truck;
 use App\Models\User;
@@ -19,6 +18,7 @@ class ScanService
         private readonly TripService $tripService,
         private readonly ScanLogService $scanLogService,
         private readonly ValidationService $validationService,
+        private readonly ScanFlowService $scanFlowService,
     ) {
     }
 
@@ -41,42 +41,24 @@ class ScanService
                 ->lockForUpdate()
                 ->first();
 
-            $nextAction = $this->resolveNextAction($activeTrip);
+            $nextStatus = $this->scanFlowService->resolveNextStep($activeTrip);
+            $nextAction = $this->scanFlowService->resolveAction($nextStatus);
+
             $this->validationService->validateScan($operator, $activeTrip, $nextAction);
 
             if (! $activeTrip) {
-                $trip = $this->tripService->createTrip($truck->id);
-                $this->scanLogService->logScan($trip, $operator, ScanLog::ACTION_START, $operator->location, $deviceId);
-                TripStarted::dispatch($trip);
+                $trip = $this->tripService->createTrip($truck->id, $nextStatus);
+                $this->scanLogService->logScan($trip, $operator, $nextAction, $operator->location, $deviceId);
+                $this->dispatchEvent($trip, $nextStatus);
 
-                return $this->buildResponse($trip, ScanLog::ACTION_START);
+                return $this->buildResponse($trip, $nextAction);
             }
 
-            if ($activeTrip->status === Trip::STATUS_STARTED) {
-                $trip = $this->tripService->updateStatus($activeTrip, Trip::STATUS_ARRIVED_PORT);
-                $this->scanLogService->logScan($trip, $operator, ScanLog::ACTION_ARRIVE, $operator->location, $deviceId);
-                ArrivedAtPort::dispatch($trip);
+            $trip = $this->tripService->updateStatus($activeTrip, $nextStatus);
+            $this->scanLogService->logScan($trip, $operator, $nextAction, $operator->location, $deviceId);
+            $this->dispatchEvent($trip, $nextStatus);
 
-                return $this->buildResponse($trip, ScanLog::ACTION_ARRIVE);
-            }
-
-            if ($activeTrip->status === Trip::STATUS_ARRIVED_PORT) {
-                $trip = $this->tripService->updateStatus($activeTrip, Trip::STATUS_LEFT_PORT);
-                $this->scanLogService->logScan($trip, $operator, ScanLog::ACTION_LEAVE, $operator->location, $deviceId);
-                LeftPort::dispatch($trip);
-
-                return $this->buildResponse($trip, ScanLog::ACTION_LEAVE);
-            }
-
-            if ($activeTrip->status === Trip::STATUS_LEFT_PORT) {
-                $trip = $this->tripService->completeTrip($activeTrip);
-                $this->scanLogService->logScan($trip, $operator, ScanLog::ACTION_RETURN, $operator->location, $deviceId);
-                TripCompleted::dispatch($trip);
-
-                return $this->buildResponse($trip, ScanLog::ACTION_RETURN);
-            }
-
-            throw new ScanException('Invalid scan sequence or unauthorized location.');
+            return $this->buildResponse($trip, $nextAction);
         });
     }
 
@@ -137,30 +119,11 @@ class ScanService
         return array_values(array_unique($candidates));
     }
 
-    private function resolveNextAction(?Trip $trip): string
-    {
-        if (! $trip) {
-            return ScanLog::ACTION_START;
-        }
-
-        return match ($trip->status) {
-            Trip::STATUS_STARTED => ScanLog::ACTION_ARRIVE,
-            Trip::STATUS_ARRIVED_PORT => ScanLog::ACTION_LEAVE,
-            Trip::STATUS_LEFT_PORT => ScanLog::ACTION_RETURN,
-            default => ScanLog::ACTION_START,
-        };
-    }
-
     private function buildResponse(Trip $trip, string $action): array
     {
         $trip->loadMissing('truck');
 
-        $nextExpectedStep = match ($trip->status) {
-            Trip::STATUS_STARTED => Trip::STATUS_ARRIVED_PORT,
-            Trip::STATUS_ARRIVED_PORT => Trip::STATUS_LEFT_PORT,
-            Trip::STATUS_LEFT_PORT => Trip::STATUS_COMPLETED,
-            default => null,
-        };
+        $nextExpectedStep = $this->scanFlowService->getNextStepForStatus($trip->status);
 
         return [
             'status' => 'SUCCESS',
@@ -186,5 +149,24 @@ class ScanService
                 ],
             ],
         ];
+    }
+
+    private function dispatchEvent(Trip $trip, string $status): void
+    {
+        if ($status === Trip::STATUS_STARTED) {
+            TripStarted::dispatch($trip);
+        }
+
+        if ($status === Trip::STATUS_ARRIVED_PORT) {
+            ArrivedAtPort::dispatch($trip);
+        }
+
+        if ($status === Trip::STATUS_LEFT_PORT) {
+            LeftPort::dispatch($trip);
+        }
+
+        if ($status === Trip::STATUS_COMPLETED) {
+            TripCompleted::dispatch($trip);
+        }
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Trip;
+use App\Services\ScanFlowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -31,12 +32,7 @@ class OperatorTripResource extends JsonResource
 
     private function nextExpectedStep(string $status): ?string
     {
-        return match ($status) {
-            Trip::STATUS_STARTED => Trip::STATUS_ARRIVED_PORT,
-            Trip::STATUS_ARRIVED_PORT => Trip::STATUS_LEFT_PORT,
-            Trip::STATUS_LEFT_PORT => Trip::STATUS_COMPLETED,
-            default => null,
-        };
+        return app(ScanFlowService::class)->getNextStepForStatus($status);
     }
 
     private function currentLocation(string $status): ?string
