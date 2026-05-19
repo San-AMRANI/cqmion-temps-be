@@ -304,7 +304,39 @@ Returns:
 - scan timestamp
 - truck information
 
-## 6.6 GET /api/scan-logs
+## 6.6 GET /api/trips/calendar
+When to call:
+- calendar month/week view summary (counts per 7am->7am day).
+
+Query params:
+- `from` (YYYY-MM-DD)
+- `to` (YYYY-MM-DD)
+- `day_start` (HH:mm, default `07:00`)
+- `timezone` (IANA, default app timezone)
+- optional filters: `status`, `truck_id`, `registration_number`, `driver_name`
+
+Returns:
+- `day` (calendar day label)
+- `start_at`/`end_at` (window start/end with timezone)
+- `total`, `active`, `completed`, `by_status`
+- day assignment is based on `started_at`
+
+## 6.7 GET /api/trips/by-day
+When to call:
+- calendar day details panel.
+
+Query params:
+- `day` (YYYY-MM-DD)
+- `day_start` (HH:mm, default `07:00`)
+- `timezone` (IANA, default app timezone)
+- `page`, `limit`
+- optional filters: `status`, `truck_id`, `registration_number`, `driver_name`
+
+Returns:
+- same paginated shape as `/api/trips`
+- additional `summary` with totals for the selected day
+
+## 6.8 GET /api/scan-logs
 When to call:
 - admin logs section for full operator traceability.
 
@@ -374,14 +406,17 @@ Current behavior note:
 - load `/api/reports/summary`
 - load `/api/trips/active`
 - load `/api/trucks?limit=...`
+3. Calendar view:
+- load `/api/trips/calendar` for month/week counts
+- load `/api/trips/by-day` for day details
 
-3. Management screens:
+4. Management screens:
 - Trucks: `/api/trucks` + activate/deactivate + generate-qr
 - Users: `/api/users` CRUD
 - Trips: `/api/trips` + `/api/trips/{id}/logs`
 - Logs: `/api/scan-logs` with filters for operator activity
 
-4. Error UX:
+5. Error UX:
 - 401 => redirect login
 - 403 => show permission error
 - 422 => bind field errors
@@ -422,6 +457,8 @@ Trips:
 - GET `/api/trips/{trip}`
 - GET `/api/trips/active`
 - GET `/api/trips/history`
+- GET `/api/trips/calendar`
+- GET `/api/trips/by-day`
 - GET `/api/trips/{trip}/logs`
 
 Logs:

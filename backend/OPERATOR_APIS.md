@@ -332,6 +332,35 @@ Error example:
   - `scanned_at`
   - truck info
 
+## 6.6 Trips calendar summary
+### Endpoint
+- `GET /api/trips/calendar`
+
+### Query params
+- `from` (YYYY-MM-DD)
+- `to` (YYYY-MM-DD)
+- `day_start` (HH:mm, default `07:00`)
+- `timezone` (IANA, default app timezone)
+- optional filters: `status`, `truck_id`, `registration_number`, `driver_name`
+
+### Logic
+- Returns per-day counts for the requested date range.
+- Day assignment uses `started_at`.
+
+## 6.7 Trips by day
+### Endpoint
+- `GET /api/trips/by-day`
+
+### Query params
+- `day` (YYYY-MM-DD)
+- `day_start` (HH:mm, default `07:00`)
+- `timezone` (IANA, default app timezone)
+- `page`, `limit`
+- optional filters: `status`, `truck_id`, `registration_number`, `driver_name`
+
+### Logic
+- Returns paginated trips for the selected day window, plus summary counts.
+
 ## 7. Reporting APIs (ADMIN)
 
 ## 7.1 Summary
@@ -436,6 +465,7 @@ Core rules:
 - For live operations: `/api/trips/active`
 - For audits: `/api/trips/{id}/logs`
 - For dashboards: `/api/reports/summary` + `/durations` + `/delays`
+- For calendar: `/api/trips/calendar` + `/api/trips/by-day`
 
 6. Truck lifecycle operations
 - Deactivate truck to hard-stop field scanning.
@@ -476,6 +506,8 @@ Trips:
 - GET `/api/trips/{trip}`
 - GET `/api/trips/active`
 - GET `/api/trips/history`
+- GET `/api/trips/calendar`
+- GET `/api/trips/by-day`
 - GET `/api/trips/{trip}/logs`
 
 Reports:
@@ -951,6 +983,32 @@ Purpose:
 
 Purpose:
 - View scan timeline for a specific trip.
+
+### `GET /api/trips/calendar`
+
+Purpose:
+- Calendar summary counts per day window.
+
+Note:
+- Day assignment uses `started_at`.
+
+Query:
+- `from`, `to`
+- `day_start` (HH:mm, default `07:00`)
+- `timezone` (IANA)
+- optional: `status`, `truck_id`, `registration_number`, `driver_name`
+
+### `GET /api/trips/by-day`
+
+Purpose:
+- Paginated trip list for a selected calendar day window.
+
+Query:
+- `day`
+- `day_start` (HH:mm, default `07:00`)
+- `timezone` (IANA)
+- `page`, `limit`
+- optional: `status`, `truck_id`, `registration_number`, `driver_name`
 
 ## 7.6 Reports (ADMIN)
 

@@ -34,6 +34,8 @@ class ApiEndpointAccessTest extends TestCase
             ['GET', '/api/trips?limit=20&page=1', []],
             ['GET', '/api/trips/active', []],
             ['GET', '/api/trips/history', []],
+            ['GET', '/api/trips/calendar?from=2026-05-01&to=2026-05-31', []],
+            ['GET', '/api/trips/by-day?day=2026-05-18', []],
             ['GET', '/api/trips/'.$context['trip_id'], []],
             ['GET', '/api/trips/'.$context['trip_id'].'/logs', []],
             ['GET', '/api/scan-logs?limit=20&page=1', []],
@@ -218,6 +220,8 @@ class ApiEndpointAccessTest extends TestCase
             ['GET', '/api/trips/'.$context['trip_id'], []],
             ['GET', '/api/trips/active', []],
             ['GET', '/api/trips/history', []],
+            ['GET', '/api/trips/calendar?from=2026-05-01&to=2026-05-31', []],
+            ['GET', '/api/trips/by-day?day=2026-05-18', []],
             ['GET', '/api/trips/'.$context['trip_id'].'/logs', []],
             ['GET', '/api/scan-logs?limit=20&page=1', []],
 

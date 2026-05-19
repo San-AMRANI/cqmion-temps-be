@@ -36,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/trips', [TripController::class, 'index']);
         Route::get('/trips/active', [TripController::class, 'active']);
         Route::get('/trips/history', [TripController::class, 'history']);
+        Route::get('/trips/calendar', [TripController::class, 'calendarSummary']);
+        Route::get('/trips/by-day', [TripController::class, 'byDay']);
         Route::get('/trips/{trip}', [TripController::class, 'show']);
         Route::get('/trips/{trip}/logs', [TripController::class, 'logs']);
         Route::get('/scan-logs', [AdminScanLogController::class, 'index']);
