@@ -319,7 +319,9 @@ Returns:
 - `day` (calendar day label)
 - `start_at`/`end_at` (window start/end with timezone)
 - `total`, `active`, `completed`, `by_status`
-- day assignment is based on `started_at`
+- day assignment is based on `created_at`
+- embedded `trips` array for each day, using the same trip resource shape as `/api/trips/by-day`
+- grouped by `created_at` in the selected window
 
 ## 6.7 GET /api/trips/by-day
 When to call:
@@ -330,11 +332,13 @@ Query params:
 - `day_start` (HH:mm, default `07:00`)
 - `timezone` (IANA, default app timezone)
 - `page`, `limit`
+- `all=true` to return the full day result without pagination
 - optional filters: `status`, `truck_id`, `registration_number`, `driver_name`
 
 Returns:
 - same paginated shape as `/api/trips`
 - additional `summary` with totals for the selected day
+- if `all=true`, returns the full day list plus `summary`, `window`, and `total_items`
 
 ## 6.8 GET /api/scan-logs
 When to call:

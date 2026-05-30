@@ -135,6 +135,13 @@ class TripController extends Controller
         $filters = $this->extractCalendarFilters($request);
         $days = $this->tripCalendarService->getCalendarSummary($filters, $from, $to, $dayStart);
 
+        foreach ($days as $index => $day) {
+            $dayDate = CarbonImmutable::createFromFormat('Y-m-d', $day['day'], $timezone);
+            $tripCollection = $this->tripCalendarService->getTripsForDay($filters, $dayDate, $dayStart);
+
+            $days[$index]['trips'] = TripResource::collection($tripCollection)->resolve($request);
+        }
+
         return $this->successResponse([
             'data' => $days,
             'meta' => [
@@ -177,20 +184,39 @@ class TripController extends Controller
             ]);
         }
 
-        $limit = max(1, min(100, (int) $request->query('limit', 20)));
+        $includeAll = filter_var($request->query('all', false), FILTER_VALIDATE_BOOL);
+        $limit = max(1, (int) $request->query('limit', 20));
+        $limit = $includeAll ? 1000 : min(100, $limit);
         $filters = $this->extractCalendarFilters($request);
 
         $result = $this->tripCalendarService->getTripsByDay($filters, $day, $dayStart, $limit);
-        $resource = TripResource::collection($result['paginator'])->additional([
-            'summary' => $result['summary'],
-            'window' => [
-                'day' => $day->format('Y-m-d'),
-                'start_at' => $result['window']['start_local']->toIso8601String(),
-                'end_at' => $result['window']['end_local']->toIso8601String(),
-                'day_start' => $dayStart,
-                'timezone' => $timezone,
-            ],
-        ]);
+
+        if ($includeAll) {
+            $allTrips = $this->tripCalendarService->getTripsForDay($filters, $day, $dayStart);
+
+            $resource = TripResource::collection($allTrips)->additional([
+                'summary' => $result['summary'],
+                'window' => [
+                    'day' => $day->format('Y-m-d'),
+                    'start_at' => $result['window']['start_local']->toIso8601String(),
+                    'end_at' => $result['window']['end_local']->toIso8601String(),
+                    'day_start' => $dayStart,
+                    'timezone' => $timezone,
+                ],
+                'total_items' => $allTrips->count(),
+            ]);
+        } else {
+            $resource = TripResource::collection($result['paginator'])->additional([
+                'summary' => $result['summary'],
+                'window' => [
+                    'day' => $day->format('Y-m-d'),
+                    'start_at' => $result['window']['start_local']->toIso8601String(),
+                    'end_at' => $result['window']['end_local']->toIso8601String(),
+                    'day_start' => $dayStart,
+                    'timezone' => $timezone,
+                ],
+            ]);
+        }
 
         return $this->successResponse($resource);
     }

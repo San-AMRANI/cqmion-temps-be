@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('trips', function (Blueprint $table) {
-            $table->index('started_at');
+            $table->index('created_at');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('trips', function (Blueprint $table) {
-            $table->dropIndex(['started_at']);
+            $table->dropIndex(['created_at']);
         });
     }
 };

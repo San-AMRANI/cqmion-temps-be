@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Trip;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class TripCalendarService
@@ -57,7 +58,7 @@ class TripCalendarService
 
         $query = $this->buildBaseQuery($filters)
             ->with(['truck', 'latestScan'])
-            ->whereBetween('started_at', [$window['start_utc'], $window['end_utc']])
+            ->whereBetween('created_at', [$window['start_utc'], $window['end_utc']])
             ->latest('id');
 
         $paginator = $query->paginate($limit)->withQueryString();
@@ -75,6 +76,20 @@ class TripCalendarService
             ],
             'window' => $window,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function getTripsForDay(array $filters, CarbonImmutable $day, string $dayStart): Collection
+    {
+        $window = $this->buildDayWindow($day, $dayStart);
+
+        return $this->buildBaseQuery($filters)
+            ->with(['truck', 'latestScan'])
+            ->whereBetween('created_at', [$window['start_utc'], $window['end_utc']])
+            ->latest('id')
+            ->get();
     }
 
     /**
@@ -132,7 +147,7 @@ class TripCalendarService
     private function summaryByStatus(array $filters, CarbonImmutable $startUtc, CarbonImmutable $endUtc)
     {
         return $this->buildBaseQuery($filters)
-            ->whereBetween('started_at', [$startUtc, $endUtc])
+            ->whereBetween('created_at', [$startUtc, $endUtc])
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');

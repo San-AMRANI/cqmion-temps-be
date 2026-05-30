@@ -35,6 +35,7 @@ class TripCalendarEndpointsTest extends TestCase
             'status' => Trip::STATUS_STARTED,
             'is_active' => true,
             'started_at' => CarbonImmutable::parse('2026-05-18 08:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-18 08:00:00', 'UTC'),
         ]);
 
         Trip::query()->create([
@@ -43,6 +44,7 @@ class TripCalendarEndpointsTest extends TestCase
             'is_active' => null,
             'started_at' => CarbonImmutable::parse('2026-05-19 06:30:00', 'UTC'),
             'completed_at' => CarbonImmutable::parse('2026-05-19 08:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-19 06:30:00', 'UTC'),
         ]);
 
         Trip::query()->create([
@@ -51,6 +53,7 @@ class TripCalendarEndpointsTest extends TestCase
             'is_active' => null,
             'started_at' => CarbonImmutable::parse('2026-05-19 07:30:00', 'UTC'),
             'completed_at' => CarbonImmutable::parse('2026-05-19 12:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-19 07:30:00', 'UTC'),
         ]);
 
         $response = $this->getJson('/api/trips/calendar?from=2026-05-18&to=2026-05-19&day_start=07:00&timezone=UTC');
@@ -63,6 +66,8 @@ class TripCalendarEndpointsTest extends TestCase
         $this->assertCount(2, $days);
         $this->assertSame('2026-05-18', $days[0]['day']);
         $this->assertSame(2, $days[0]['total']);
+        $this->assertCount(2, $days[0]['trips']);
+        $this->assertArrayHasKey('created_at', $days[0]['trips'][0]);
         $this->assertSame('2026-05-19', $days[1]['day']);
         $this->assertSame(1, $days[1]['total']);
     }
@@ -88,6 +93,7 @@ class TripCalendarEndpointsTest extends TestCase
             'status' => Trip::STATUS_STARTED,
             'is_active' => true,
             'started_at' => CarbonImmutable::parse('2026-05-18 08:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-18 08:00:00', 'UTC'),
         ]);
 
         Trip::query()->create([
@@ -96,6 +102,7 @@ class TripCalendarEndpointsTest extends TestCase
             'is_active' => null,
             'started_at' => CarbonImmutable::parse('2026-05-19 06:30:00', 'UTC'),
             'completed_at' => CarbonImmutable::parse('2026-05-19 08:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-19 06:30:00', 'UTC'),
         ]);
 
         $response = $this->getJson('/api/trips/by-day?day=2026-05-18&day_start=07:00&timezone=UTC&limit=10');
@@ -103,6 +110,48 @@ class TripCalendarEndpointsTest extends TestCase
         $response->assertOk();
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.summary.total', 2);
+        $this->assertCount(2, $response->json('data.data'));
+    }
+
+    public function test_trips_by_day_all_returns_all_trips_without_pagination(): void
+    {
+        $admin = User::factory()->create([
+            'role' => User::ROLE_ADMIN,
+            'location' => null,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $truck = Truck::query()->create([
+            'registration_number' => 'ALL-TRUCK-001',
+            'driver_name' => 'All Driver',
+            'qr_code' => 'ALL-QR-001',
+            'is_active' => true,
+        ]);
+
+        Trip::query()->create([
+            'truck_id' => $truck->id,
+            'status' => Trip::STATUS_STARTED,
+            'is_active' => true,
+            'started_at' => CarbonImmutable::parse('2026-05-18 08:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-18 08:00:00', 'UTC'),
+        ]);
+
+        Trip::query()->create([
+            'truck_id' => $truck->id,
+            'status' => Trip::STATUS_COMPLETED,
+            'is_active' => null,
+            'started_at' => CarbonImmutable::parse('2026-05-18 10:00:00', 'UTC'),
+            'completed_at' => CarbonImmutable::parse('2026-05-18 12:00:00', 'UTC'),
+            'created_at' => CarbonImmutable::parse('2026-05-18 10:00:00', 'UTC'),
+        ]);
+
+        $response = $this->getJson('/api/trips/by-day?day=2026-05-18&day_start=07:00&timezone=UTC&all=true');
+
+        $response->assertOk();
+        $response->assertJsonPath('success', true);
+        $response->assertJsonPath('data.summary.total', 2);
+        $response->assertJsonPath('data.total_items', 2);
         $this->assertCount(2, $response->json('data.data'));
     }
 }

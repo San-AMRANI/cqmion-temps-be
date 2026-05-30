@@ -23,6 +23,7 @@ class TripResource extends JsonResource
             'current_location' => $this->currentLocation($trip->status),
             'last_scan_at' => $trip->latestScan?->scanned_at,
             'is_active' => $trip->is_active,
+            'created_at' => $trip->created_at,
             'started_at' => $trip->started_at,
             'arrived_port_at' => $trip->arrived_port_at,
             'left_port_at' => $trip->left_port_at,
