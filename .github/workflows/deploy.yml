@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies on host
         run: |
           ssh -p "${SSH_PORT}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ secrets.SSH_BE_PATH }} && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
+            "cd ${{ secrets.SSH_BE_PATH }} && /usr/php82/usr/bin/php /usr/local/bin/composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
 
       - name: Post-deploy artisan
         run: |
