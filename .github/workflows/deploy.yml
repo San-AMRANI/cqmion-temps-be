@@ -1,0 +1,52 @@
+name: backend-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_branch:
+        description: "Branch to deploy"
+        type: string
+        required: false
+        default: "master"
+  workflow_run:
+    workflows: ["backend-ci"]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_branch || github.event.workflow_run.head_branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add SSH known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${SSH_PORT}" -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Update code on host
+        run: |
+          ssh -p "${SSH_PORT}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.SSH_BE_PATH }} && git fetch --all --prune && git checkout ${DEPLOY_BRANCH} && git pull --ff-only origin ${DEPLOY_BRANCH}"
+
+      - name: Install dependencies on host
+        run: |
+          ssh -p "${SSH_PORT}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.SSH_BE_PATH }} && composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
+
+      - name: Post-deploy artisan
+        run: |
+          ssh -p "${SSH_PORT}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.SSH_BE_PATH }} && php artisan optimize:clear && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan queue:restart"
