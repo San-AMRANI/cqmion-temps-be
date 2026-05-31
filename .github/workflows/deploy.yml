@@ -10,13 +10,14 @@ on:
         default: "master"
   workflow_run:
     workflows: ["backend-ci"]
+    branches: ["master"]
     types: [completed]
 
 jobs:
   deploy:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master')
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     environment: production
     env:
