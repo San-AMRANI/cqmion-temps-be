@@ -8,21 +8,19 @@ on:
         type: string
         required: false
         default: "master"
-  workflow_run:
-    workflows: ["backend-ci"]
-    branches: ["master"]
-    types: [completed]
+  push:
+    branches:
+      - "master"
 
 jobs:
   deploy:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
     env:
       SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
-      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_branch || github.event.workflow_run.head_branch }}
+      DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_branch || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
