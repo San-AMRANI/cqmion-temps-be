@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Truck;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
@@ -12,33 +13,25 @@ class ReportController extends Controller
     {
     }
 
-    public function summary(): JsonResponse
+    public function summary(Request $request): JsonResponse
     {
-        return $this->successResponse($this->reportService->getSummary());
-    }
-
-    public function truck(Truck $truck): JsonResponse
-    {
-        return $this->successResponse($this->reportService->getTruckReport($truck->id));
-    }
-
-    public function durations(): JsonResponse
-    {
-        return $this->successResponse($this->reportService->getDurationMetrics());
-    }
-
-    public function delays(): JsonResponse
-    {
-        return $this->successResponse($this->reportService->getDelayMetrics());
-    }
-
-    public function export(): JsonResponse
-    {
-        return $this->successResponse([
-            'generated_at' => now(),
-            'summary' => $this->reportService->getSummary(),
-            'durations' => $this->reportService->getDurationMetrics(),
-            'delays' => $this->reportService->getDelayMetrics(),
+        return response()->json([
+            'status' => 'SUCCESS',
+            'data' => $this->reportService->generateGeneralReport($request->query())
         ]);
+    }
+
+    public function truck(Truck $truck, Request $request): JsonResponse
+    {
+        return response()->json([
+            'status' => 'SUCCESS',
+            'data' => $this->reportService->generateTruckReport($truck->id, $request->query())
+        ]);
+    }
+
+    public function export(Request $request): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $filePath = $this->reportService->exportReportToExcel($request->query());
+        return response()->download($filePath)->deleteFileAfterSend(true);
     }
 }

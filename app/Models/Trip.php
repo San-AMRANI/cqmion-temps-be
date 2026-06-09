@@ -16,6 +16,7 @@ class Trip extends Model
     public const STATUS_ARRIVED_PORT = 'ARRIVED_PORT';
     public const STATUS_LEFT_PORT = 'LEFT_PORT';
     public const STATUS_COMPLETED = 'COMPLETED';
+    public const STATUS_CANCELLED = 'CANCELLED';
 
     protected $fillable = [
         'truck_id',
@@ -25,6 +26,8 @@ class Trip extends Model
         'arrived_port_at',
         'left_port_at',
         'completed_at',
+        'cancelled_at',
+        'notes',
     ];
 
     protected function casts(): array
@@ -35,6 +38,7 @@ class Trip extends Model
             'arrived_port_at' => 'datetime',
             'left_port_at' => 'datetime',
             'completed_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -51,5 +55,10 @@ class Trip extends Model
     public function latestScan(): HasOne
     {
         return $this->hasOne(ScanLog::class)->latestOfMany('scanned_at');
+    }
+
+    public function maintenanceRecords(): HasMany
+    {
+        return $this->hasMany(MaintenanceRecord::class);
     }
 }

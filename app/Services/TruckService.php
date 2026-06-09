@@ -97,4 +97,39 @@ class TruckService
 
         return $truck->fresh();
     }
+
+    public function getStats(): array
+    {
+        return [
+            'total' => Truck::count(),
+            'active' => Truck::where('is_active', true)->count(),
+            'inactive' => Truck::where('is_active', false)->count(),
+        ];
+    }
+
+    public function search(array $filters = []): \Illuminate\Database\Eloquent\Collection
+    {
+        $query = Truck::query();
+        
+        if (isset($filters['search'])) {
+            $query->where('registration_number', 'LIKE', '%' . $filters['search'] . '%')
+                  ->orWhere('driver_name', 'LIKE', '%' . $filters['search'] . '%');
+        }
+
+        if (isset($filters['is_active'])) {
+            $query->where('is_active', (bool) $filters['is_active']);
+        }
+
+        return $query->get();
+    }
+
+    public function bulkActivate(array $truckIds): void
+    {
+        Truck::whereIn('id', $truckIds)->update(['is_active' => true]);
+    }
+
+    public function bulkDeactivate(array $truckIds): void
+    {
+        Truck::whereIn('id', $truckIds)->update(['is_active' => false]);
+    }
 }
