@@ -21,6 +21,7 @@ jobs:
     env:
       SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
       DEPLOY_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_branch || github.ref_name }}
+      PHP_BIN: /usr/php82/usr/bin/php
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -43,9 +44,9 @@ jobs:
       - name: Install dependencies on host
         run: |
           ssh -p "${SSH_PORT}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ secrets.SSH_BE_PATH }} && /usr/php82/usr/bin/php /usr/local/bin/composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
+            "cd ${{ secrets.SSH_BE_PATH }} && ${PHP_BIN} /usr/local/bin/composer install --no-interaction --no-dev --prefer-dist --optimize-autoloader"
 
       - name: Post-deploy artisan
         run: |
           ssh -p "${SSH_PORT}" ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd ${{ secrets.SSH_BE_PATH }} && php artisan optimize:clear && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan queue:restart"
+            "cd ${{ secrets.SSH_BE_PATH }} && ${PHP_BIN} artisan optimize:clear && ${PHP_BIN} artisan migrate --force && ${PHP_BIN} artisan config:cache && ${PHP_BIN} artisan route:cache && ${PHP_BIN} artisan queue:restart"
