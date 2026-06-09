@@ -1,0 +1,92 @@
+erDiagram
+    users {
+        bigint id PK
+        varchar name
+        varchar email "Unique"
+        varchar password
+        enum role "ADMIN, COMPANY_OPERATOR, PORT_OPERATOR"
+        enum location "COMPANY, PORT (Nullable)"
+        varchar remember_token "Nullable"
+        timestamp created_at "Nullable"
+        timestamp updated_at "Nullable"
+    }
+
+    trucks {
+        bigint id PK
+        varchar registration_number "Unique"
+        varchar driver_name "Nullable"
+        varchar qr_code "Unique"
+        boolean is_active "Default: true"
+        timestamp created_at "Nullable"
+        timestamp updated_at "Nullable"
+    }
+
+    trips {
+        bigint id PK
+        bigint truck_id FK "Constrained, Cascade On Delete"
+        enum status "STARTED, ARRIVED_PORT, LEFT_PORT, COMPLETED, CANCELLED"
+        boolean is_active "Nullable, Default: 1"
+        timestamp started_at "Nullable"
+        timestamp arrived_port_at "Nullable"
+        timestamp left_port_at "Nullable"
+        timestamp completed_at "Nullable"
+        timestamp cancelled_at "Nullable"
+        text notes "Nullable"
+        timestamp created_at "Nullable, Indexed"
+        timestamp updated_at "Nullable"
+    }
+
+    scan_logs {
+        bigint id PK
+        bigint truck_id FK "Constrained, Cascade On Delete"
+        bigint trip_id FK "Constrained, Cascade On Delete"
+        bigint user_id FK "Constrained, Cascade On Delete"
+        enum location "COMPANY, PORT"
+        enum action "START, ARRIVE, LEAVE, RETURN"
+        varchar device_id "Nullable"
+        timestamp scanned_at
+        timestamp created_at "Default: CURRENT_TIMESTAMP"
+    }
+
+    scan_flows {
+        bigint id PK
+        json steps
+        boolean is_active "Default: true, Indexed"
+        timestamp created_at "Nullable"
+        timestamp updated_at "Nullable"
+    }
+
+    personal_access_tokens {
+        bigint id PK
+        varchar tokenable_type "Polymorphic"
+        bigint tokenable_id "Polymorphic"
+        varchar name
+        varchar token "Unique, Len: 64"
+        text abilities "Nullable"
+        timestamp last_used_at "Nullable"
+        timestamp expires_at "Nullable, Indexed"
+        timestamp created_at "Nullable"
+        timestamp updated_at "Nullable"
+    }
+
+    sessions {
+        varchar id PK "Primary Key"
+        bigint user_id FK "Nullable, Indexed"
+        varchar ip_address "Len: 45, Nullable"
+        text user_agent "Nullable"
+        longtext payload
+        integer last_activity "Indexed"
+    }
+
+    password_reset_tokens {
+        varchar email PK "Primary Key"
+        string token
+        timestamp created_at "Nullable"
+    }
+
+    users ||--o{ scan_logs : "performs"
+    users |o--o{ sessions : "creates"
+    users ||--o{ personal_access_tokens : "owns"
+    trucks ||--o{ trips : "undergoes"
+    trucks ||--o{ scan_logs : "associated_with"
+    trips ||--o{ scan_logs : "logs_scans_for"
