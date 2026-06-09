@@ -57,8 +57,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::patch('/trips/{trip}/cancel', [TripController::class, 'cancel']);
         Route::patch('/trips/{trip}/notes', [TripController::class, 'updateNotes']);
         Route::delete('/trips/{trip}', [TripController::class, 'destroy']);
-        
-        Route::apiResource('maintenance', \App\Http\Controllers\MaintenanceController::class);
 
         Route::get('/scan-logs', [AdminScanLogController::class, 'index']);
 

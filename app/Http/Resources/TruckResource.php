@@ -23,7 +23,6 @@ class TruckResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'active_trip' => $this->whenLoaded('activeTrip'),
-            'maintenance_records' => MaintenanceResource::collection($this->whenLoaded('maintenanceRecords')),
         ];
     }
 }
