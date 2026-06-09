@@ -71,6 +71,46 @@ class TripService
         return $this->updateStatus($trip, Trip::STATUS_COMPLETED);
     }
 
+    public function cancelTrip(Trip $trip, ?string $notes = null): Trip
+    {
+        $trip->update([
+            'status' => Trip::STATUS_CANCELLED,
+            'is_active' => null,
+            'cancelled_at' => now(),
+            'notes' => $notes,
+        ]);
+
+        return $trip->fresh();
+    }
+
+    public function search(array $filters = []): Collection
+    {
+        return $this->getTrips($filters); // utilizing existing getTrips or enhancing it
+    }
+
+    public function getStats(): array
+    {
+        return [
+            'total' => Trip::count(),
+            'active' => Trip::where('is_active', true)->count(),
+            'completed' => Trip::where('status', Trip::STATUS_COMPLETED)->count(),
+            'cancelled' => Trip::where('status', Trip::STATUS_CANCELLED)->count(),
+        ];
+    }
+
+    public function getTimeline(Trip $trip): array
+    {
+        $trip->loadMissing('scanLogs');
+        return $trip->scanLogs->map(function ($log) {
+            return [
+                'action' => $log->action,
+                'location' => $log->location,
+                'scanned_at' => $log->scanned_at,
+                'user_name' => $log->user?->name,
+            ];
+        })->toArray();
+    }
+
     public function getTrips(array $filters = []): Collection
     {
         $query = Trip::query()->with('truck')->latest('id');

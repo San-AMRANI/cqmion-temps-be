@@ -23,6 +23,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::middleware('role:ADMIN')->group(function (): void {
+        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index']);
+
+        Route::get('/trucks/search', [TruckController::class, 'search']);
+        Route::get('/trucks/stats', [TruckController::class, 'stats']);
+        Route::post('/trucks/bulk-activate', [TruckController::class, 'bulkActivate']);
+        Route::post('/trucks/bulk-deactivate', [TruckController::class, 'bulkDeactivate']);
+        Route::get('/trucks/{truck}/trips', [TruckController::class, 'trips']);
         Route::apiResource('trucks', TruckController::class);
         Route::post('/trucks/{truck}/generate-qr', [TruckController::class, 'generateQr']);
         Route::patch('/trucks/{truck}/activate', [TruckController::class, 'activate']);
@@ -31,8 +38,14 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/scan-flow', [ScanFlowController::class, 'show']);
         Route::put('/scan-flow', [ScanFlowController::class, 'update']);
 
+        Route::get('/users/search', [UserController::class, 'search']);
+        Route::get('/users/stats', [UserController::class, 'stats']);
+        Route::get('/users/{user}/activity', [UserController::class, 'activity']);
+        Route::patch('/users/{user}/reset-password', [UserController::class, 'resetPassword']);
         Route::apiResource('users', UserController::class);
 
+        Route::get('/trips/search', [TripController::class, 'search']);
+        Route::get('/trips/stats', [TripController::class, 'stats']);
         Route::get('/trips', [TripController::class, 'index']);
         Route::get('/trips/active', [TripController::class, 'active']);
         Route::get('/trips/history', [TripController::class, 'history']);
@@ -40,6 +53,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/trips/by-day', [TripController::class, 'byDay']);
         Route::get('/trips/{trip}', [TripController::class, 'show']);
         Route::get('/trips/{trip}/logs', [TripController::class, 'logs']);
+        Route::get('/trips/{trip}/timeline', [TripController::class, 'timeline']);
+        Route::patch('/trips/{trip}/cancel', [TripController::class, 'cancel']);
+        Route::patch('/trips/{trip}/notes', [TripController::class, 'updateNotes']);
+        Route::delete('/trips/{trip}', [TripController::class, 'destroy']);
+        
+        Route::apiResource('maintenance', \App\Http\Controllers\MaintenanceController::class);
+
         Route::get('/scan-logs', [AdminScanLogController::class, 'index']);
 
         Route::get('/reports/summary', [ReportController::class, 'summary']);

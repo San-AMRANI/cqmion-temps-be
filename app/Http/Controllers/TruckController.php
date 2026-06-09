@@ -113,11 +113,32 @@ class TruckController extends Controller
         );
     }
 
-    public function deactivate(Truck $truck): JsonResponse
+    public function bulkActivate(Request $request): JsonResponse
     {
-        return $this->successResponse(
-            $this->truckService->deactivate($truck),
-            'Truck deactivated successfully'
-        );
+        $request->validate(['truck_ids' => 'required|array', 'truck_ids.*' => 'exists:trucks,id']);
+        $this->truckService->bulkActivate($request->input('truck_ids'));
+        return $this->successResponse(null, 'Trucks activated');
+    }
+
+    public function bulkDeactivate(Request $request): JsonResponse
+    {
+        $request->validate(['truck_ids' => 'required|array', 'truck_ids.*' => 'exists:trucks,id']);
+        $this->truckService->bulkDeactivate($request->input('truck_ids'));
+        return $this->successResponse(null, 'Trucks deactivated');
+    }
+
+    public function stats(): JsonResponse
+    {
+        return $this->successResponse($this->truckService->getStats());
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        return $this->successResponse(\App\Http\Resources\TruckResource::collection($this->truckService->search($request->query())));
+    }
+
+    public function trips(Truck $truck): JsonResponse
+    {
+        return $this->successResponse(\App\Http\Resources\TripResource::collection($truck->trips));
     }
 }

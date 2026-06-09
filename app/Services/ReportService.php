@@ -8,115 +8,59 @@ use Illuminate\Database\Eloquent\Collection;
 
 class ReportService
 {
-    public function __construct(private readonly TripService $tripService)
-    {
+    public function __construct(
+        private readonly TripService $tripService,
+        private readonly ExcelExportService $excelExportService
+    ) {
     }
 
-    public function getSummary(): array
+    public function generateGeneralReport(array $filters = []): array
     {
-        $completedTrips = Trip::query()->where('status', Trip::STATUS_COMPLETED)->get();
+        $query = Trip::query()->with('truck');
+        
+        if (!empty($filters['start_date'])) {
+            $query->whereDate('created_at', '>=', $filters['start_date']);
+        }
+        
+        if (!empty($filters['end_date'])) {
+            $query->whereDate('created_at', '<=', $filters['end_date']);
+        }
 
-        $durations = $completedTrips->map(function (Trip $trip): array {
-            return [
-                'company_to_port' => $trip->started_at && $trip->arrived_port_at
-                    ? $trip->started_at->diffInSeconds($trip->arrived_port_at)
-                    : null,
-                'port_duration' => $trip->arrived_port_at && $trip->left_port_at
-                    ? $trip->arrived_port_at->diffInSeconds($trip->left_port_at)
-                    : null,
-                'port_to_company' => $trip->left_port_at && $trip->completed_at
-                    ? $trip->left_port_at->diffInSeconds($trip->completed_at)
-                    : null,
-                'total_duration' => $trip->started_at && $trip->completed_at
-                    ? $trip->started_at->diffInSeconds($trip->completed_at)
-                    : null,
-            ];
-        });
+        $trips = $query->get();
 
-        $delayThresholdSeconds = 6 * 3600;
-        $delayedTrips = $durations->filter(fn (array $item) => ($item['port_duration'] ?? 0) > $delayThresholdSeconds)->count();
+        $durations = $trips->filter(fn($trip) => $trip->status === Trip::STATUS_COMPLETED)
+                           ->map(fn($trip) => $this->tripService->formatWithDurations($trip)['durations']);
 
         return [
-            'total_trucks' => Truck::count(),
-            'total_trips' => Trip::count(),
-            'active_trips' => Trip::where('is_active', true)->count(),
-            'completed_trips' => $completedTrips->count(),
-            'delayed_trips' => $delayedTrips,
-            'status_breakdown' => Trip::query()
-                ->selectRaw('status, COUNT(*) as total')
-                ->groupBy('status')
-                ->pluck('total', 'status'),
-            'average_company_to_port_seconds' => (int) round((float) $durations->pluck('company_to_port')->filter()->avg()),
-            'average_port_duration_seconds' => (int) round((float) $durations->pluck('port_duration')->filter()->avg()),
-            'average_port_to_company_seconds' => (int) round((float) $durations->pluck('port_to_company')->filter()->avg()),
-            'average_total_duration_seconds' => (int) round((float) $durations->pluck('total_duration')->filter()->avg()),
+            'total_trips' => $trips->count(),
+            'active_trips' => $trips->where('is_active', true)->count(),
+            'completed_trips' => $trips->where('status', Trip::STATUS_COMPLETED)->count(),
+            'cancelled_trips' => $trips->where('status', Trip::STATUS_CANCELLED)->count(),
+            'average_total_duration' => (int) round((float) $durations->pluck('total_duration')->filter()->avg()),
+            'trips' => $trips->map(fn($t) => $this->tripService->formatWithDurations($t))
         ];
     }
 
-    public function getTruckReport(int $truckId): array
+    public function generateTruckReport(int $truckId, array $filters = []): array
     {
         $truck = Truck::findOrFail($truckId);
-
-        $trips = $truck->trips()->latest('id')->get()->map(
-            fn (Trip $trip) => $this->tripService->formatWithDurations($trip)
-        );
-
+        $filters['truck_id'] = $truckId;
+        
+        $trips = $this->tripService->getTrips($filters);
+        
         return [
-            'truck' => [
-                'id' => $truck->id,
-                'registration_number' => $truck->registration_number,
-                'driver_name' => $truck->driver_name,
-                'qr_code' => $truck->qr_code,
-                'is_active' => $truck->is_active,
-            ],
-            'trips' => $trips,
+            'truck' => $truck,
             'total_trips' => $trips->count(),
+            'completed_trips' => $trips->where('status', Trip::STATUS_COMPLETED)->count(),
+            'cancelled_trips' => $trips->where('status', Trip::STATUS_CANCELLED)->count(),
+            'trips' => $trips->map(fn($t) => $this->tripService->formatWithDurations($t))
         ];
     }
-
-    public function getFilteredTrips(array $filters): Collection
+    
+    public function exportReportToExcel(array $filters = []): string
     {
-        $query = Trip::query()->with('truck')->latest('id');
-
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
-
-        if (! empty($filters['from'])) {
-            $query->whereDate('created_at', '>=', $filters['from']);
-        }
-
-        if (! empty($filters['to'])) {
-            $query->whereDate('created_at', '<=', $filters['to']);
-        }
-
-        if (! empty($filters['truck_id'])) {
-            $query->where('truck_id', (int) $filters['truck_id']);
-        }
-
-        return $query->get();
-    }
-
-    public function getDurationMetrics(): array
-    {
-        return $this->getSummary();
-    }
-
-    public function getDelayMetrics(): array
-    {
-        $threshold = 6 * 3600;
-
-        $delayed = Trip::query()
-            ->whereNotNull('arrived_port_at')
-            ->whereNotNull('left_port_at')
-            ->get()
-            ->filter(fn (Trip $trip) => $trip->arrived_port_at->diffInSeconds($trip->left_port_at) > $threshold)
-            ->values();
-
-        return [
-            'threshold_seconds' => $threshold,
-            'count' => $delayed->count(),
-            'trips' => $delayed->map(fn (Trip $trip) => $this->tripService->formatWithDurations($trip)),
-        ];
+        $trips = $this->tripService->getTrips($filters);
+        return $this->excelExportService->exportTrips($trips);
     }
 }
+

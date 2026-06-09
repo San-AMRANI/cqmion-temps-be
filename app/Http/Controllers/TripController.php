@@ -280,4 +280,38 @@ class TripController extends Controller
             'driver_name' => $request->query('driver_name'),
         ];
     }
+    
+    public function search(Request $request): JsonResponse
+    {
+        return $this->successResponse(TripResource::collection($this->tripService->search($request->query())));
+    }
+
+    public function cancel(Request $request, Trip $trip): JsonResponse
+    {
+        $request->validate(['notes' => 'nullable|string']);
+        return $this->successResponse(new TripResource($this->tripService->cancelTrip($trip, $request->input('notes'))));
+    }
+
+    public function updateNotes(Request $request, Trip $trip): JsonResponse
+    {
+        $request->validate(['notes' => 'required|string']);
+        $trip->update(['notes' => $request->input('notes')]);
+        return $this->successResponse(new TripResource($trip->fresh()));
+    }
+
+    public function stats(): JsonResponse
+    {
+        return $this->successResponse($this->tripService->getStats());
+    }
+
+    public function timeline(Trip $trip): JsonResponse
+    {
+        return $this->successResponse($this->tripService->getTimeline($trip));
+    }
+    
+    public function destroy(Trip $trip): JsonResponse
+    {
+        $trip->delete();
+        return $this->successResponse(null, 'Trip deleted');
+    }
 }

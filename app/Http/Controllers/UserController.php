@@ -81,10 +81,31 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(User $user): JsonResponse
+    public function activity(User $user, \App\Services\UserService $userService): JsonResponse
     {
-        $user->delete();
+        return $this->successResponse($userService->getActivity($user));
+    }
 
-        return $this->successResponse(null, 'User deleted successfully');
+    public function stats(\App\Services\UserService $userService): JsonResponse
+    {
+        return $this->successResponse($userService->getStats());
+    }
+
+    public function search(Request $request, \App\Services\UserService $userService): JsonResponse
+    {
+        return $this->successResponse(
+            \App\Http\Resources\UserResource::collection($userService->search($request->query()))
+        );
+    }
+
+    public function resetPassword(Request $request, User $user, \App\Services\UserService $userService): JsonResponse
+    {
+        $request->validate([
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        $userService->resetPassword($user, $request->input('password'));
+
+        return $this->successResponse(null, 'Password reset successfully');
     }
 }
