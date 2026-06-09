@@ -40,8 +40,4 @@ class Truck extends Model
         return $this->hasOne(Trip::class)->where('is_active', true);
     }
 
-    public function maintenanceRecords(): HasMany
-    {
-        return $this->hasMany(MaintenanceRecord::class);
-    }
 }

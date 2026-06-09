@@ -57,10 +57,6 @@ class Trip extends Model
         return $this->hasOne(ScanLog::class)->latestOfMany('scanned_at');
     }
 
-    public function maintenanceRecords(): HasMany
-    {
-        return $this->hasMany(MaintenanceRecord::class);
-    }
 
     public function isDelayed(): bool
     {
