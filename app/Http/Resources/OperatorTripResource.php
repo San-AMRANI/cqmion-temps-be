@@ -22,6 +22,9 @@ class OperatorTripResource extends JsonResource
             'next_expected_step' => $this->nextExpectedStep($trip->status),
             'current_location' => $this->currentLocation($trip->status),
             'last_scan_at' => $trip->latestScan?->scanned_at,
+            'cancelled_at' => $trip->cancelled_at,
+            'notes' => $trip->notes,
+            'is_delayed' => $trip->isDelayed(),
             'truck' => [
                 'id' => $trip->truck?->id ?? $trip->truck_id,
                 'registration_number' => $trip->truck?->registration_number ?? '',

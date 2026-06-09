@@ -28,6 +28,9 @@ class TripResource extends JsonResource
             'arrived_port_at' => $trip->arrived_port_at,
             'left_port_at' => $trip->left_port_at,
             'completed_at' => $trip->completed_at,
+            'cancelled_at' => $trip->cancelled_at,
+            'notes' => $trip->notes,
+            'is_delayed' => $trip->isDelayed(),
             'durations' => [
                 'company_to_port' => $this->diffInSeconds($trip->started_at, $trip->arrived_port_at),
                 'port_duration' => $this->diffInSeconds($trip->arrived_port_at, $trip->left_port_at),

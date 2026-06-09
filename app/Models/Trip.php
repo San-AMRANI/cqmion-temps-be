@@ -61,4 +61,21 @@ class Trip extends Model
     {
         return $this->hasMany(MaintenanceRecord::class);
     }
+
+    public function isDelayed(): bool
+    {
+        if ($this->status === self::STATUS_CANCELLED) {
+            return false;
+        }
+
+        if ($this->status === self::STATUS_COMPLETED) {
+            return $this->started_at && $this->completed_at && $this->started_at->diffInMinutes($this->completed_at) > 240;
+        }
+
+        if ($this->started_at) {
+            return $this->started_at->diffInMinutes(now()) > 240;
+        }
+
+        return false;
+    }
 }
