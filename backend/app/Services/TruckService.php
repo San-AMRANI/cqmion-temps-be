@@ -23,6 +23,13 @@ class TruckService
         return Truck::create($data);
     }
 
+    private function buildQrCodeFromRegistration(string $registrationNumber): string
+    {
+        $normalized = strtoupper((string) preg_replace('/[^A-Z0-9]+/', '-', $registrationNumber));
+
+        return self::QR_PREFIX.trim($normalized, '-');
+    }
+
     public function updateTruck(Truck $truck, array $data): Truck
     {
         if (array_key_exists('registration_number', $data) && ! array_key_exists('qr_code', $data)) {
@@ -75,13 +82,6 @@ class TruckService
         }
 
         return self::COMPANY_PREFIX.$normalized;
-    }
-
-    private function buildQrCodeFromRegistration(string $registrationNumber): string
-    {
-        $normalized = strtoupper((string) preg_replace('/[^A-Z0-9]+/', '-', $registrationNumber));
-
-        return self::QR_PREFIX.trim($normalized, '-');
     }
 
     public function activate(Truck $truck): Truck
